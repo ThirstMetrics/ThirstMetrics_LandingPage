@@ -37,7 +37,8 @@ export default function FinalCTA() {
             {[
               "Free during beta",
               "No credit card",
-              "Weekly data refresh",
+              "Monthly data refresh",
+              "Access to built-in CRM",
             ].map((item) => (
               <span key={item} className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-brand-500" />
