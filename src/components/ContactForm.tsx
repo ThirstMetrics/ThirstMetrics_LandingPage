@@ -2,10 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { Send, CheckCircle2 } from "lucide-react";
+import { Send, CheckCircle2, Loader2 } from "lucide-react";
 import { isBlockedDomain } from "@/constants/email-blocklist";
 import { US_STATES } from "@/constants/us-states";
 import { revealUp, staggerContainer, staggerItem, viewport } from "@/lib/motion";
+
+const REDIRECT_URL = "https://texas.thirstmetrics.com";
 
 const REASONS = [
   { value: "thirstmetrics-texas", label: "ThirstMetrics Texas" },
@@ -23,9 +25,11 @@ export default function ContactForm() {
   const [spotlightTarget, setSpotlightTarget] = useState("");
   const [spotlightState, setSpotlightState] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const isSpotlight = reason === "spotlight";
+  const isTexas = reason === "thirstmetrics-texas";
 
   function validate(): string | null {
     if (!name.trim() || !email.trim() || !company.trim() || !reason) {
@@ -41,7 +45,7 @@ export default function ContactForm() {
     return null;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
 
@@ -51,21 +55,50 @@ export default function ContactForm() {
       return;
     }
 
-    // TODO: Replace with a real CRM integration / API call.
-    // For now, log to console as a placeholder handler.
-    const payload = {
-      name: name.trim(),
-      email: email.trim(),
-      company: company.trim(),
-      reason,
-      ...(isSpotlight && {
-        spotlightTarget: spotlightTarget.trim(),
-        spotlightState,
-      }),
-    };
-    console.log("[contact-form] Submitted:", payload);
+    setSubmitting(true);
 
-    setSubmitted(true);
+    try {
+      if (isTexas) {
+        // Server-side validation via API route (MX check, blocklist)
+        const res = await fetch("/api/beta-access", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            company: company.trim(),
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          setError(data.error || "Something went wrong. Please try again.");
+          setSubmitting(false);
+          return;
+        }
+
+        window.location.href = REDIRECT_URL;
+      } else {
+        // Non-Texas reasons: log and show confirmation
+        const payload = {
+          name: name.trim(),
+          email: email.trim(),
+          company: company.trim(),
+          reason,
+          ...(isSpotlight && {
+            spotlightTarget: spotlightTarget.trim(),
+            spotlightState,
+          }),
+        };
+        console.log("[contact-form] Submitted:", payload);
+
+        setSubmitted(true);
+      }
+    } catch {
+      setError("Network error. Please check your connection and try again.");
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -222,10 +255,20 @@ export default function ContactForm() {
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-brand-500 text-white font-semibold hover:bg-brand-600 transition-colors text-base shadow-soft"
+              disabled={submitting}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-brand-500 text-white font-semibold hover:bg-brand-600 transition-colors text-base shadow-soft disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Send Message
-              <Send className="w-4 h-4" />
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {isTexas ? "Validating…" : "Sending…"}
+                </>
+              ) : (
+                <>
+                  Send Message
+                  <Send className="w-4 h-4" />
+                </>
+              )}
             </button>
           </motion.form>
         </motion.div>

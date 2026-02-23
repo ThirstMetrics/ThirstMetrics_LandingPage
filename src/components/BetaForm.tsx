@@ -5,7 +5,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { isBlockedDomain } from "@/constants/email-blocklist";
 
 const FRIENDLY_ERROR = "Please use your work email (no gmail, yahoo, etc).";
-const REDIRECT_URL = "https://betatexas.thirstmetrics.com";
+const REDIRECT_URL = "https://texas.thirstmetrics.com";
 
 interface BetaFormProps {
   /** Visual variant — hero has white inputs, section has bordered inputs */
