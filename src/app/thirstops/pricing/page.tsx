@@ -27,18 +27,21 @@ interface CalcState {
   states: number;
   migration: string;
   industry: string;
+  products: number;
+  accounts: number;
+  locations: number;
+  contractTerm: string;
+  chainAccounts: number;
+  historyYears: number;
   addons: Record<string, boolean>;
 }
 
 interface CalcResult {
   tier: string;
   tierExplanation: string;
-  monthlyLow: number;
-  monthlyHigh: number;
-  setupLow: number;
-  setupHigh: number;
-  timelineWeeksLow: number;
-  timelineWeeksHigh: number;
+  monthly: number;
+  setup: number;
+  timelineWeeks: number;
   included: string[];
 }
 
@@ -68,13 +71,14 @@ const ADDONS = [
 ];
 
 const TIER_COMPARISON = [
-  { feature: "Monthly", starter: "$149–$299", professional: "$499–$999", enterprise: "$1,499–$2,999" },
+  { feature: "Starting at", starter: "$199/mo", professional: "$699/mo", enterprise: "$1,999/mo" },
   { feature: "Users", starter: "Up to 5", professional: "5–20", enterprise: "Unlimited" },
   { feature: "States", starter: "1", professional: "1–3", enterprise: "Unlimited" },
   { feature: "QB Integration", starter: "CSV", professional: "CSV or API", enterprise: "Full API" },
   { feature: "Support", starter: "Email", professional: "Priority + calls", enterprise: "Dedicated + Slack" },
   { feature: "Custom Reports", starter: "—", professional: "Up to 5", enterprise: "Unlimited" },
   { feature: "Odoo / ERPNext", starter: "—", professional: "Odoo available", enterprise: "All integrations" },
+  { feature: "Annual Discount", starter: "15%", professional: "15%", enterprise: "15%" },
 ];
 
 /* ───────────────── Calculation engine ───────────── */
@@ -82,41 +86,69 @@ const TIER_COMPARISON = [
 function calculate(s: CalcState): CalcResult {
   const addonCount = Object.values(s.addons).filter(Boolean).length;
   let tier = "Starter";
-  if (s.reps > 20 || s.states > 3 || s.migration === "encompass" || addonCount >= 5) {
+  if (s.reps > 20 || s.states > 3 || s.migration === "encompass" || addonCount >= 5 || s.locations > 3) {
     tier = "Enterprise";
-  } else if (s.reps > 5 || s.states > 1 || ["qb_bolt", "qb_migrate", "odoo"].includes(s.migration) || addonCount >= 2) {
+  } else if (s.reps > 5 || s.states > 1 || ["qb_bolt", "qb_migrate", "odoo"].includes(s.migration) || addonCount >= 2 || s.locations > 1) {
     tier = "Professional";
   }
 
-  const base = { Starter: [149, 299], Professional: [499, 999], Enterprise: [1499, 2999] }[tier]!;
-  const stateAdj = Math.max(0, s.states - 1) * 75;
-  const addonAdj = addonCount * 40;
-  const monthlyLow = base[0] + stateAdj + addonAdj;
-  const monthlyHigh = base[1] + stateAdj + addonAdj;
+  // Base monthly by tier
+  const baseMap = { Starter: 199, Professional: 699, Enterprise: 1999 };
+  let monthly = baseMap[tier as keyof typeof baseMap];
 
-  const setupMap: Record<string, [number, number]> = {
-    fresh: [0, 5000],
-    qb_bolt: [3000, 8000],
-    qb_migrate: [8000, 15000],
-    encompass: [15000, 25000],
-    odoo: [3000, 6000],
-  };
-  const [setupLow, setupHigh] = setupMap[s.migration] || [0, 5000];
-  const stateSetup = Math.max(0, s.states - 1) * 3000;
+  // Adjustments based on exact inputs
+  monthly += Math.max(0, s.states - 1) * 75;
+  monthly += addonCount * 40;
+  monthly += Math.max(0, s.locations - 1) * 100;
+  monthly += Math.max(0, s.reps - (tier === "Starter" ? 5 : tier === "Professional" ? 10 : 25)) * 15;
+  // Product volume surcharge (per 500 products over 500)
+  monthly += Math.max(0, Math.floor((s.products - 500) / 500)) * 25;
+  // Account volume surcharge (per 1000 accounts over 1000)
+  monthly += Math.max(0, Math.floor((s.accounts - 1000) / 1000)) * 35;
+  // Chain accounts needing EDI/setup forms
+  monthly += s.chainAccounts * 10;
+  // Annual contract discount
+  if (s.contractTerm === "annual") monthly = Math.round(monthly * 0.85);
 
-  const timelineMap: Record<string, [number, number]> = {
-    fresh: [1, 2],
-    qb_bolt: [2, 4],
-    qb_migrate: [4, 8],
-    encompass: [6, 12],
-    odoo: [2, 3],
+  // Setup cost — exact based on migration + data volume
+  const setupBase: Record<string, number> = {
+    fresh: 0,
+    qb_bolt: 4500,
+    qb_migrate: 10000,
+    encompass: 18000,
+    odoo: 4000,
   };
-  const [tlLow, tlHigh] = timelineMap[s.migration] || [2, 4];
+  let setup = setupBase[s.migration] || 0;
+  setup += Math.max(0, s.states - 1) * 3000;
+  setup += Math.max(0, s.locations - 1) * 2000;
+  // Data migration cost scales with history
+  if (s.migration !== "fresh") {
+    setup += s.historyYears * 500;
+    setup += Math.floor(s.products / 500) * 300;
+    setup += Math.floor(s.accounts / 1000) * 400;
+  }
+  // Chain account setup (EDI config, setup forms)
+  setup += s.chainAccounts * 250;
+
+  // Timeline — exact weeks based on complexity
+  const tlBase: Record<string, number> = {
+    fresh: 1,
+    qb_bolt: 3,
+    qb_migrate: 5,
+    encompass: 8,
+    odoo: 2,
+  };
+  let weeks = tlBase[s.migration] || 2;
+  weeks += Math.max(0, s.states - 1);
+  weeks += Math.max(0, s.locations - 1);
+  if (s.historyYears > 3) weeks += 1;
+  if (s.products > 2000) weeks += 1;
+  if (s.chainAccounts > 10) weeks += 1;
 
   const explanations: Record<string, string> = {
-    Starter: `With ${s.reps} rep${s.reps > 1 ? "s" : ""} in ${s.states} state${s.states > 1 ? "s" : ""}, the Starter tier gives you everything you need to get rolling.`,
-    Professional: `Your setup (${s.reps} reps, ${s.states} state${s.states > 1 ? "s" : ""}) fits the Professional tier — includes a dedicated setup sprint and expanded features.`,
-    Enterprise: `With ${s.reps} reps across ${s.states} state${s.states > 1 ? "s" : ""}, you qualify for Enterprise — unlimited everything with bespoke development included.`,
+    Starter: `With ${s.reps} rep${s.reps > 1 ? "s" : ""}, ${s.products.toLocaleString()} products, and ${s.accounts.toLocaleString()} accounts in ${s.states} state${s.states > 1 ? "s" : ""} — Starter gives you everything to get rolling.`,
+    Professional: `Your setup (${s.reps} reps, ${s.products.toLocaleString()} products, ${s.locations} location${s.locations > 1 ? "s" : ""}) fits Professional — includes a dedicated setup sprint and expanded features.`,
+    Enterprise: `With ${s.reps} reps, ${s.products.toLocaleString()} products across ${s.states} state${s.states > 1 ? "s" : ""} and ${s.locations} location${s.locations > 1 ? "s" : ""} — Enterprise gives you unlimited everything with bespoke development.`,
   };
 
   const included: string[] = [];
@@ -135,12 +167,9 @@ function calculate(s: CalcState): CalcResult {
   return {
     tier,
     tierExplanation: explanations[tier],
-    monthlyLow,
-    monthlyHigh,
-    setupLow: setupLow + stateSetup,
-    setupHigh: setupHigh + stateSetup,
-    timelineWeeksLow: tlLow,
-    timelineWeeksHigh: tlHigh,
+    monthly,
+    setup,
+    timelineWeeks: weeks,
     included,
   };
 }
@@ -358,6 +387,12 @@ export default function PricingCalculatorPage() {
     states: 1,
     migration: "fresh",
     industry: "beverage",
+    products: 500,
+    accounts: 1000,
+    locations: 1,
+    contractTerm: "monthly",
+    chainAccounts: 0,
+    historyYears: 0,
     addons: {},
   });
 
@@ -408,20 +443,13 @@ export default function PricingCalculatorPage() {
     }, 400);
   };
 
-  const halfMonthlyLow = Math.round(result.monthlyLow / 2);
-  const halfMonthlyHigh = Math.round(result.monthlyHigh / 2);
-  const halfSetupLow = Math.round(result.setupLow / 2);
-  const halfSetupHigh = Math.round(result.setupHigh / 2);
+  const halfMonthly = Math.round(result.monthly / 2);
+  const halfSetup = Math.round(result.setup / 2);
 
-  const displayMonthlyLow = showPromo ? halfMonthlyLow : result.monthlyLow;
-  const displayMonthlyHigh = showPromo ? halfMonthlyHigh : result.monthlyHigh;
-  const displaySetupLow = showPromo ? halfSetupLow : result.setupLow;
-  const displaySetupHigh = showPromo ? halfSetupHigh : result.setupHigh;
+  const displayMonthly = showPromo ? halfMonthly : result.monthly;
+  const displaySetup = showPromo ? halfSetup : result.setup;
 
-  const timelinePct = Math.min(
-    100,
-    ((result.timelineWeeksLow + result.timelineWeeksHigh) / 2 / 14) * 100
-  );
+  const timelinePct = Math.min(100, (result.timelineWeeks / 14) * 100);
 
   const tierColor: Record<string, string> = {
     Starter: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -469,7 +497,7 @@ export default function PricingCalculatorPage() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.5 }}
-              className="overflow-hidden border-y border-[#0d7377]/30 bg-gradient-to-r from-[#0d7377]/10 via-slate-900 to-[#0d7377]/10"
+              className="overflow-hidden border-y border-[#0d7377]/40 bg-slate-950"
             >
               <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-6 py-6 text-center sm:flex-row sm:text-left">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#22d3e6]/10">
@@ -599,6 +627,173 @@ export default function PricingCalculatorPage() {
                     </select>
                   </div>
 
+                  {/* Products */}
+                  <div>
+                    <label className="flex items-center justify-between text-sm text-slate-400 mb-2">
+                      Products / SKUs
+                      <span className="font-mono font-bold text-[#22d3e6]">
+                        {calc.products.toLocaleString()}
+                      </span>
+                    </label>
+                    <input
+                      type="range"
+                      min={50}
+                      max={10000}
+                      step={50}
+                      value={calc.products}
+                      onChange={(e) =>
+                        update({ products: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-[#0d7377]"
+                      style={{
+                        background: `linear-gradient(to right, #0d7377 ${((calc.products - 50) / 9950) * 100}%, #334155 ${((calc.products - 50) / 9950) * 100}%)`,
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-slate-600 mt-1">
+                      <span>50</span>
+                      <span>5,000</span>
+                      <span>10,000</span>
+                    </div>
+                  </div>
+
+                  {/* Accounts */}
+                  <div>
+                    <label className="flex items-center justify-between text-sm text-slate-400 mb-2">
+                      Customer Accounts
+                      <span className="font-mono font-bold text-[#22d3e6]">
+                        {calc.accounts.toLocaleString()}
+                      </span>
+                    </label>
+                    <input
+                      type="range"
+                      min={10}
+                      max={20000}
+                      step={10}
+                      value={calc.accounts}
+                      onChange={(e) =>
+                        update({ accounts: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-[#0d7377]"
+                      style={{
+                        background: `linear-gradient(to right, #0d7377 ${((calc.accounts - 10) / 19990) * 100}%, #334155 ${((calc.accounts - 10) / 19990) * 100}%)`,
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-slate-600 mt-1">
+                      <span>10</span>
+                      <span>10K</span>
+                      <span>20K</span>
+                    </div>
+                  </div>
+
+                  {/* Warehouse Locations */}
+                  <div>
+                    <label className="flex items-center justify-between text-sm text-slate-400 mb-2">
+                      Warehouse Locations
+                      <span className="font-mono font-bold text-[#22d3e6]">
+                        {calc.locations}
+                      </span>
+                    </label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={10}
+                      value={calc.locations}
+                      onChange={(e) =>
+                        update({ locations: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-[#0d7377]"
+                      style={{
+                        background: `linear-gradient(to right, #0d7377 ${((calc.locations - 1) / 9) * 100}%, #334155 ${((calc.locations - 1) / 9) * 100}%)`,
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-slate-600 mt-1">
+                      <span>1</span>
+                      <span>5</span>
+                      <span>10</span>
+                    </div>
+                  </div>
+
+                  {/* Chain Accounts */}
+                  <div>
+                    <label className="flex items-center justify-between text-sm text-slate-400 mb-2">
+                      Chain Accounts (EDI/Setup Forms)
+                      <span className="font-mono font-bold text-[#22d3e6]">
+                        {calc.chainAccounts}
+                      </span>
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={50}
+                      value={calc.chainAccounts}
+                      onChange={(e) =>
+                        update({ chainAccounts: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-[#0d7377]"
+                      style={{
+                        background: `linear-gradient(to right, #0d7377 ${(calc.chainAccounts / 50) * 100}%, #334155 ${(calc.chainAccounts / 50) * 100}%)`,
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-slate-600 mt-1">
+                      <span>0</span>
+                      <span>25</span>
+                      <span>50</span>
+                    </div>
+                  </div>
+
+                  {/* Historical Data Years */}
+                  <div>
+                    <label className="flex items-center justify-between text-sm text-slate-400 mb-2">
+                      Years of History to Migrate
+                      <span className="font-mono font-bold text-[#22d3e6]">
+                        {calc.historyYears}
+                      </span>
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={10}
+                      value={calc.historyYears}
+                      onChange={(e) =>
+                        update({ historyYears: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-[#0d7377]"
+                      style={{
+                        background: `linear-gradient(to right, #0d7377 ${(calc.historyYears / 10) * 100}%, #334155 ${(calc.historyYears / 10) * 100}%)`,
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-slate-600 mt-1">
+                      <span>0</span>
+                      <span>5</span>
+                      <span>10</span>
+                    </div>
+                  </div>
+
+                  {/* Contract Term */}
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">
+                      Contract Term
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: "monthly", label: "Monthly" },
+                        { value: "annual", label: "Annual (15% off)" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => update({ contractTerm: opt.value })}
+                          className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                            calc.contractTerm === opt.value
+                              ? "border-[#0d7377] bg-[#0d7377]/20 text-[#22d3e6]"
+                              : "border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Add-ons */}
                   <div>
                     <label className="block text-sm text-slate-400 mb-3">
@@ -664,22 +859,14 @@ export default function PricingCalculatorPage() {
                       {showPromo && (
                         <div className="text-sm mb-1">
                           <span className="text-slate-500 line-through decoration-red-500/70 decoration-2">
-                            ${result.monthlyLow.toLocaleString()} – ${result.monthlyHigh.toLocaleString()}
+                            ${result.monthly.toLocaleString()}
                           </span>
                         </div>
                       )}
                       <div className="flex items-baseline gap-1">
                         <span className="font-mono text-2xl font-bold text-white sm:text-3xl">
                           <RollingPrice
-                            value={displayMonthlyLow}
-                            slashed={false}
-                            duration={showPromo ? 1500 : 600}
-                          />
-                        </span>
-                        <span className="text-slate-500 mx-1">–</span>
-                        <span className="font-mono text-2xl font-bold text-white sm:text-3xl">
-                          <RollingPrice
-                            value={displayMonthlyHigh}
+                            value={displayMonthly}
                             slashed={false}
                             duration={showPromo ? 1500 : 600}
                           />
@@ -705,37 +892,28 @@ export default function PricingCalculatorPage() {
                       <p className="text-xs font-medium uppercase tracking-widest text-slate-500 mb-2">
                         One-Time Setup
                       </p>
-                      {showPromo && result.setupHigh > 0 && (
+                      {showPromo && result.setup > 0 && (
                         <div className="text-sm mb-1">
                           <span className="text-slate-500 line-through decoration-red-500/70 decoration-2">
-                            ${result.setupLow.toLocaleString()} – ${result.setupHigh.toLocaleString()}
+                            ${result.setup.toLocaleString()}
                           </span>
                         </div>
                       )}
                       <div className="flex items-baseline gap-1">
-                        {result.setupHigh === 0 ? (
+                        {result.setup === 0 ? (
                           <span className="font-mono text-2xl font-bold text-emerald-400 sm:text-3xl">
                             Free
                           </span>
                         ) : (
-                          <>
-                            <span className="font-mono text-2xl font-bold text-white sm:text-3xl">
-                              <RollingPrice
-                                value={displaySetupLow}
-                                duration={showPromo ? 1500 : 600}
-                              />
-                            </span>
-                            <span className="text-slate-500 mx-1">–</span>
-                            <span className="font-mono text-2xl font-bold text-white sm:text-3xl">
-                              <RollingPrice
-                                value={displaySetupHigh}
-                                duration={showPromo ? 1500 : 600}
-                              />
-                            </span>
-                          </>
+                          <span className="font-mono text-2xl font-bold text-white sm:text-3xl">
+                            <RollingPrice
+                              value={displaySetup}
+                              duration={showPromo ? 1500 : 600}
+                            />
+                          </span>
                         )}
                       </div>
-                      {showPromo && result.setupHigh > 0 && (
+                      {showPromo && result.setup > 0 && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -757,7 +935,7 @@ export default function PricingCalculatorPage() {
                         Estimated Setup Timeline
                       </p>
                       <span className="text-sm font-semibold text-[#22d3e6]">
-                        {result.timelineWeeksLow}–{result.timelineWeeksHigh} weeks
+                        {result.timelineWeeks} week{result.timelineWeeks !== 1 ? "s" : ""}
                       </span>
                     </div>
                     <div className="h-2.5 rounded-full bg-slate-800 overflow-hidden">
