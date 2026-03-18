@@ -527,6 +527,13 @@ export default function ThirstOpsPage() {
                 No hidden fees, no per-transaction charges. Pick the tier that
                 fits today — upgrade when you grow.
               </p>
+              <a
+                href="/thirstops/pricing"
+                className="mt-6 inline-flex items-center gap-2 rounded-lg border border-[#0d7377] px-6 py-2.5 text-sm font-semibold text-[#22d3e6] transition-colors hover:bg-[#0d7377]/10"
+              >
+                Build Your Custom Quote
+                <ArrowRight className="h-4 w-4" />
+              </a>
             </motion.div>
 
             <motion.div

@@ -1,0 +1,13 @@
+RewriteEngine On
+
+# Clean URLs: try .html extension for extensionless requests
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+# Handle directory-style paths (e.g., /thirstops/pricing)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI}/index.html -f
+RewriteRule ^(.*)$ $1/index.html [L]
