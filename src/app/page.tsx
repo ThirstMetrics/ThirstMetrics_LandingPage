@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Rocket,
   Users,
+  Warehouse,
   Wrench,
   Globe,
 } from "lucide-react";
@@ -29,6 +30,15 @@ import {
 /* ───────────────────── Product data ───────────────────── */
 
 const products = [
+  {
+    icon: Warehouse,
+    name: "ThirstOps",
+    tagline: "ERP + CRM + warehouse management for distributors",
+    description:
+      "The all-in-one platform for beverage distributors: supplier pipeline, field CRM, lead finder, route management, email campaigns, and compliance — with QuickBooks, Odoo, and ERPNext integration.",
+    status: "live" as const,
+    href: "/thirstops",
+  },
   {
     icon: MapPin,
     name: "Streetwise",

@@ -8,6 +8,7 @@ import Logo from "@/components/Logo";
 
 const NAV = [
   { label: "Products", href: "#products" },
+  { label: "ThirstOps", href: "/thirstops" },
   { label: "Whiskey River", href: "/whiskey-river" },
   { label: "Streetwise", href: "/streetwise" },
   { label: "Spotlight", href: "/spotlight" },
