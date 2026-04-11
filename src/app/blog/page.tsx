@@ -4,11 +4,13 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { Plus, Edit3, Instagram, Linkedin, Send, X, Calendar, ArrowRight } from "lucide-react";
 import { staggerContainer, staggerItem, viewport } from "@/lib/motion";
 
 interface BlogPost {
   id: string;
+  slug?: string;
   title: string;
   body: string;
   source: "linkedin" | "instagram" | "original";
@@ -25,6 +27,14 @@ const SOURCE_LABELS: Record<BlogPost["source"], { label: string; icon: typeof Li
 /* Seed posts — replace with CMS / API data when ready                */
 /* ------------------------------------------------------------------ */
 const SEED_POSTS: BlogPost[] = [
+  {
+    id: "qbo-june-2026",
+    slug: "quickbooks-export-format-june-2026",
+    title: "QuickBooks Is Quietly Breaking Your Exports on June 30",
+    body: "Intuit is migrating all 29 QBO report types to a new format by June 30, 2026. We found out the hard way when our Fintech invoice upload — an Excel macro that worked flawlessly for 14 months — broke with zero notice after QuickBooks silently renamed columns, restructured rows, and flipped quantity signs. 7 million businesses use QBO. If you export data to spreadsheets, Fintech, or any tool, your workflow will break on July 1 unless you prepare now.",
+    source: "original",
+    date: "2026-04-11",
+  },
   {
     id: "1",
     title: "Why Public Receipts Data Changes the Game for Texas Reps",
@@ -208,9 +218,18 @@ export default function BlogPage() {
                     {post.body}
                   </p>
                   <div className="mt-4 pt-4 border-t border-slate-100">
-                    <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 group-hover:text-brand-700 transition-colors">
-                      Read more <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
+                    {post.slug ? (
+                      <Link
+                        href={`/blog/${post.slug}`}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 group-hover:text-brand-700 transition-colors"
+                      >
+                        Read more <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 group-hover:text-brand-700 transition-colors">
+                        Read more <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    )}
                   </div>
                 </motion.article>
               );
