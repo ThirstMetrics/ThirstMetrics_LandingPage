@@ -14,6 +14,7 @@ import {
   Warehouse,
   Wrench,
   Globe,
+  Newspaper,
 } from "lucide-react";
 import Header from "@/components/Header";
 import ContactForm from "@/components/ContactForm";
@@ -295,6 +296,65 @@ export default function Home() {
                 );
               })}
             </motion.div>
+          </div>
+        </section>
+
+        {/* ── Industry News ──────────────────────────────── */}
+        <section className="bg-slate-900 py-24 sm:py-32 border-t border-slate-800">
+          <div className="mx-auto max-w-4xl px-6">
+            <motion.div
+              variants={revealUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewport}
+              className="text-center mb-12"
+            >
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#22d3e6]/10">
+                <Newspaper className="h-6 w-6 text-[#22d3e6]" />
+              </div>
+              <h2 className="text-3xl font-bold text-white sm:text-4xl">
+                Industry News
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-slate-400">
+                What we&apos;re seeing in beverage distribution, QBO, and the tools that run your business.
+              </p>
+            </motion.div>
+
+            <motion.a
+              href="/blog/quickbooks-export-format-june-2026"
+              variants={staggerItem}
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewport}
+              whileHover={hoverGlow}
+              className="group block rounded-2xl border border-slate-800 bg-slate-950/60 p-8 sm:p-10 backdrop-blur transition-colors hover:border-[#0d7377]/40"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-xs font-medium text-red-400">
+                  Breaking Change
+                </span>
+                <span className="text-xs text-slate-500">April 11, 2026</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold text-white group-hover:text-[#22d3e6] transition-colors">
+                QuickBooks Is Quietly Breaking Your Exports on June 30
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-400 line-clamp-3">
+                Intuit is migrating all 29 QBO report types to a new format by June 30, 2026. We found out the hard way when our Fintech invoice upload — an Excel macro that worked flawlessly for 14 months — broke with zero notice. 7 million businesses affected.
+              </p>
+              <span className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-[#0d7377] transition-colors group-hover:text-[#22d3e6]">
+                Read the full breakdown
+                <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+            </motion.a>
+
+            <div className="mt-6 text-center">
+              <a
+                href="/blog"
+                className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-[#22d3e6] transition-colors"
+              >
+                View all posts <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+            </div>
           </div>
         </section>
 
