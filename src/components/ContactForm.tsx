@@ -8,6 +8,7 @@ import { US_STATES } from "@/constants/us-states";
 import { revealUp, staggerContainer, staggerItem, viewport } from "@/lib/motion";
 
 const REASONS = [
+  { value: "thirstops", label: "ThirstOps (Distributor ERP + CRM)" },
   { value: "whiskey-river", label: "Whiskey River (Texas Market Intelligence)" },
   { value: "streetwise", label: "Streetwise (Location Intelligence)" },
   { value: "spotlight", label: "Spotlight (Resort Inventory)" },

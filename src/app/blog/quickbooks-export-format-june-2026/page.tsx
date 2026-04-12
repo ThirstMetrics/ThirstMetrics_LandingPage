@@ -82,8 +82,9 @@ export default function QBOArticlePage() {
             <h2>What Happened to Us</h2>
 
             <p>
-              We run a beverage distribution company in Nevada. Like thousands of
-              other alcohol distributors, we use{" "}
+              We created software automations for a beverage distribution
+              company in Nevada. Like thousands of other alcohol distributors,
+              they use{" "}
               <a
                 href="https://fintech.com"
                 target="_blank"
@@ -91,7 +92,7 @@ export default function QBOArticlePage() {
               >
                 Fintech&apos;s
               </a>{" "}
-              PaymentSource platform to process our invoices. Every week, we
+              PaymentSource platform to process their invoices. Every week, we
               export a QBO Journal report, clean it into Fintech&apos;s required
               tab-delimited format, and upload it. Fintech processes over 52
               million invoices a year across 9,200+ distributors — so when your
@@ -339,8 +340,8 @@ export default function QBOArticlePage() {
 
             <p>
               We&apos;re building format-drift detection into{" "}
-              <Link href="/" className="text-brand-600 hover:underline">
-                ThirstMetrics
+              <Link href="/thirstops" className="text-brand-600 hover:underline">
+                ThirstOps
               </Link>
               , our operations platform for beverage distributors. When a QBO
               export comes in, the system fingerprints the file structure,
